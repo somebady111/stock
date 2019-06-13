@@ -1,61 +1,74 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+import datetime
 from stocks.models import *
 # Create your models here.
 
+BANK_CHOICES = (
+    (0, '中国银行'),
+    (1, '工商银行'),
+    (2, '建设银行'),
+    (3, '农业银行'),
+    (4, '交通银行'),
+    (5, '招商银行'),
+)
+
+
 class UserInfo(AbstractUser):
-    uemail = models.EmailField(verbose_name='邮箱',null=True)
-    uphone = models.CharField(verbose_name='电话',max_length=11,null=True)
-    isActive = models.BooleanField(verbose_name='是否激活',default=False)
+    mobile = models.CharField(max_length=11, blank=True, null=True, unique=True, verbose_name='手机号码')
+    email = models.CharField(max_length=30, blank=True, null=True, verbose_name='邮箱')
+    identity = models.CharField(max_length=20, blank=True, null=True, verbose_name='身份证号')
+    isactive = models.BooleanField(default=False, verbose_name='是否激活')
+    isban = models.BooleanField(default=False, verbose_name='是否禁用')
 
     def __str__(self):
-        return self.uemail
+        return self.username
+
     class Meta:
-        verbose_name = verbose_name_plural = '用户表'
+        db_table = 'User'
+        verbose_name = '用户信息'
+        verbose_name_plural = verbose_name
         ordering = ['-id']
 
 
-class Fund(models.Model):
-    user = models.ForeignKey(UserInfo,verbose_name='用户')
-    money = models.DecimalField(verbose_name='资金',max_digits=8,decimal_places=2,default=0)
-    frozen_money = models.DecimalField(verbose_name='冻结资金',max_digits=8,decimal_places=2,default=0)
-
-    def __str__(self):
-        return self.user.username
-    class Meta:
-        verbose_name = verbose_name_plural = '钱包表'
-
 class Hold(models.Model):
-    user = models.ForeignKey(UserInfo,verbose_name='用户')
-    stock = models.ForeignKey(Stock,verbose_name='股票')
-    amount = models.IntegerField(blank=True,verbose_name='持仓数',null=True)
-    frozen_amount = models.IntegerField(blank=True,verbose_name='冻结数量',null=True)
+    user = models.ForeignKey(UserInfo, verbose_name='用户')
+    stock = models.ForeignKey(Stock, verbose_name='股票')
+    amount = models.IntegerField(blank=True, null=True, verbose_name='持有数量')
+    frozen = models.IntegerField(blank=True, null=True, verbose_name='冻结股')
 
     def __str__(self):
         return self.user.username
+
     class Meta:
-        verbose_name = verbose_name_plural = '持仓表'
+        db_table = 'Hold'
+        verbose_name = '持仓表'
+        verbose_name_plural = verbose_name
+
+
+class Fund(models.Model):
+    user = models.OneToOneField(UserInfo, verbose_name='用户')
+    money = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True, verbose_name='总资金')
+    frozen_money = models.DecimalField(max_digits=8, decimal_places=2, blank=True, null=True, verbose_name='冻结资金')
+
+
+    class Meta:
+        db_table = 'Fund'
+        verbose_name = '资金表'
+        verbose_name_plural = verbose_name
+
 
 class Bank(models.Model):
-    BANK = (
-        (0,'建设银行'),
-        (1,'中国银行'),
-        (2,'华夏银行'),
-        (3,'花旗银行'),
-        (4,'齐鲁银行'),
-        (5,'青岛银行'),
-        (6,'工商银行'),
-        (7,'农业银行'),
-    )
-    user = models.ForeignKey(UserInfo,verbose_name='用户')
-    truename = models.CharField(verbose_name='真实姓名',max_length=10,null=True)
-    bank  = models.IntegerField(verbose_name='银行',choices=BANK,default=0,null=True)
-    bankNo = models.CharField(verbose_name='银行卡号',max_length=24,null=True)
-    tradepwd = models.CharField(verbose_name='交易密码',max_length=50,null=True)
+    user = models.ForeignKey(UserInfo, verbose_name='用户',on_delete=models.CASCADE)
+    username = models.CharField(max_length=40, verbose_name='持卡人姓名')
+    bank = models.CharField(max_length=40, choices=BANK_CHOICES, default=0, verbose_name='开户行')
+    bankNo = models.CharField(max_length=40, verbose_name='卡号')
+    tradepwd = models.CharField(max_length=100, verbose_name='交易密码')
 
     def __str__(self):
-        return self.user.username
+        return self.bank
+
     class Meta:
-        verbose_name = verbose_name_plural = '银行表'
-
-
+        db_table = 'Bank'
+        verbose_name = '银行表'
+        verbose_name_plural = verbose_name
